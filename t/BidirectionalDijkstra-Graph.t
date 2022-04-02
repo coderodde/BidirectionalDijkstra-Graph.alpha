@@ -10,7 +10,7 @@ use warnings;
 use BidirectionalDijkstra::Graph;
 use BidirectionalDijkstra::DaryHeap;
 
-use Test::More tests => 24;
+use Test::More tests => 27;
 BEGIN { use_ok('BidirectionalDijkstra::Graph') };
 BEGIN { use_ok('BidirectionalDijkstra::DaryHeap') };
 
@@ -71,6 +71,17 @@ $heap->add("2", 0.5);
 
 is($heap->extractMinimum(), "2");
 is($heap->extractMinimum(), "1");
+
+$heap->add("10", 3.0);
+$heap->add("11", 2.0);
+$heap->add("12", 1.0);
+
+$heap->decreasePriority("10", 0.1);
+$heap->decreasePriority("11", 0.2);
+
+is($heap->extractMinimum(), "10");
+is($heap->extractMinimum(), "11");
+is($heap->extractMinimum(), "12");
 
 # $graph->findShortestPath()->from(1)->to(2)->slow();
 # $graph->findShortestPath()->from(1)->to(13)->slow();

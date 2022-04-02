@@ -43,9 +43,9 @@ sub new($$) {
 }
 
 sub get_parent_index {
-	my $degree = shift;
+	my $self = shift;
 	my $index = shift;
-	return ($index - 1) / $degree;
+	return ($index - 1) / $self->{degree};
 }
 
 sub sift_up {
@@ -54,11 +54,7 @@ sub sift_up {
 	
 	return if $index == 0;
 
-	my $parent_index = 
-		get_parent_index(
-			$self->{degree}, 
-			$index);
-
+	my $parent_index = $self->get_parent_index($index);
 	my $target_node = $self->{node_array}->[$index];
 
 	while (1) {
@@ -66,9 +62,9 @@ sub sift_up {
 
 		if ($parent_node->{priority} > $target_node->{priority}) {
 			$self->{node_array}->[$index] = $parent_node;
-			$parent_node->{index} = $index;
+			$parent_node->{node_index} = $index;
 			$index = $parent_index;
-			$parent_index = get_parent_index($self->{degree}, $index);
+			$parent_index = $self->get_parent_index($index);
 		} else {
 			last;
 		}
@@ -85,14 +81,14 @@ sub compute_children_indices {
 	my $index = shift;
 	my $degree = $self->{degree};
 
-	for my $key (1 .. $degree) {
-		$self->{children_index_array}->[$key - 1] = 
-			$degree * $index + $key;
+	for my $i (0 .. $degree - 1) {
+		$self->{children_index_array}->[$i] = 
+			$degree * $index + $i + 1;
 
 		if ($self->{children_index_array}
-			 ->[$key - 1] >= $self->size()) {
+			 ->[$i] >= $self->size()) {
 
-			$self->{children_index_array}->[$key - 1] = 
+			$self->{children_index_array}->[$i] = 
 				$MAXIMUM_INT;
 				
 			return;
@@ -116,22 +112,22 @@ sub sift_down_root {
 		$min_child_index = $MAXIMUM_INT;
 		$self->compute_children_indices($index);
 
-		for my $i (1 .. $degree) {
-			if ($self->{children_index_array}->[$i - 1] == $MAXIMUM_INT) {
+		for my $i (0 .. $degree - 1) {
+			if ($self->{children_index_array}->[$i] == $MAXIMUM_INT) {
 				last;
 			}
 
 			$tentative_priority = 
 				$self->{node_array}
 					 ->[$self->{children_index_array}
-							 ->[$i - 1]];
+							 ->[$i]]
+							 ->{priority};
 
 			if ($min_child_priority > $tentative_priority) {
 				$min_child_priority = $tentative_priority;
 				$min_child_index = 
-					$self->{node_array}
-					     ->[$self->{children_index_array}
-						         ->[$i - 1]];
+					$self->{children_index_array}
+						 ->[$i];
 			}
 		}
 
@@ -141,8 +137,14 @@ sub sift_down_root {
 			return;
 		}
 
-		$self->{node_array}->[$index] = $self->{node_array}->[$min_child_index];
-		$self->{node_array}->[$index]->{node_index} = $index;
+		$self->{node_array}->[$index] = 
+			$self->{node_array}
+			     ->[$min_child_index];
+
+		$self->{node_array}
+			 ->[$index]
+			 ->{node_index} = $index;
+
 		$index = $min_child_index;
 	}
 }
@@ -153,7 +155,7 @@ sub add {
 	my $priority = shift;	
 	my $size = scalar @{$self->{node_array}};
 	
-	return if exists $self->{$vertex};
+	return if exists $self->{node_map}->{$vertex};
 
 	my $node = {
 		vertex_id  => $vertex,
@@ -176,7 +178,7 @@ sub decreasePriority {
 	return if $priority >= $node->{priority};
 
 	$node->{priority} = $priority;
-	$self->sift_up($node->{index});
+	$self->sift_up($node->{node_index});
 }
 
 sub size {
@@ -190,12 +192,11 @@ sub extractMinimum {
 	my $node = $self->{node_array}->[0];
 	my $vertex = $node->{vertex_id};
 
-	return undef if not exists $self->{node_map}->{$vertex};
+	return undef if not exists $node->{vertex_id};
  	
 	$self->{node_array}->[0] = $self->{node_array}->[$self->size() - 1];
-	delete $self->{node_map}->{$node->{vertex_id}};	
-	delete $self->{node_array}->[$self->size() - 1];
-
+	delete $self->{node_map}->{$node->{vertex_id}};
+	pop @{$self->{node_array}};
 	$self->sift_down_root();
 	
 	return $vertex;
