@@ -70,11 +70,14 @@ sub sift_up {
 			$index = $parent_index;
 			$parent_index = get_parent_index($self->{degree}, $index);
 		} else {
-			return;
+			last;
 		}
 
-		return if $index == 0;
+		last if $index == 0;
 	}
+
+	$self->{node_array}->[$index] = $target_node;
+	$target_node->{node_index} = $index;	
 }
 
 sub compute_children_indices {
