@@ -6,7 +6,7 @@ use warnings;
 require Exporter;
 
 our @ISA = qw(Exporter);
-our @MAXIMUM_INT = 1000 * 1000 * 1000;
+our $MAXIMUM_INT = 1000 * 1000 * 1000;
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
@@ -29,7 +29,7 @@ our $VERSION = '1.6';
 
 # Preloaded methods go here.
 
-sub new {
+sub new($$) {
 	my $class = shift;
 	my $degree = shift;
 	my $self = {
@@ -52,9 +52,7 @@ sub sift_up {
 	my $self = shift;
 	my $index = shift;
 	
-	if ($index == 0) {
-		return;
-	}
+	return if $index == 0;
 
 	my $parent_index = 
 		get_parent_index(
@@ -75,9 +73,7 @@ sub sift_up {
 			return;
 		}
 
-		if ($index == 0) {
-			return;
-		}
+		return if $index == 0;
 	}
 }
 
@@ -94,15 +90,15 @@ sub compute_children_indices {
 			 ->[$key - 1] >= $self->size()) {
 
 			$self->{children_index_array}->[$key - 1] = 
+				$MAXIMUM_INT;
 				
-
 			return;
 		}		
 	}
 }
 
 sub sift_down_root {
-	my $self = this;
+	my $self = shift;
 	my $target = $self->{node_array}->[0];
 	my $priority = $target->{priority};
 	my $min_child_priority;
@@ -114,28 +110,29 @@ sub sift_down_root {
 
 	while (1) {
 		$min_child_priority = $priority;
-		$min_child_index = @MAXIMUM_INT;
+		$min_child_index = $MAXIMUM_INT;
 		$self->compute_children_indices($index);
 
 		for my $i (1 .. $degree) {
-			if ($self->{children_index_array}->[$i - 1] == @MAXIMUM_INT) {
+			if ($self->{children_index_array}->[$i - 1] == $MAXIMUM_INT) {
 				last;
 			}
 
-			$tentative_priority = $self->{node_array}
-						   ->[$self->{children_index_array}
-							   ->[$i - 1]}];
+			$tentative_priority = 
+				$self->{node_array}
+					 ->[$self->{children_index_array}
+							 ->[$i - 1]];
 
 			if ($min_child_priority > $tentative_priority) {
 				$min_child_priority = $tentative_priority;
 				$min_child_index = 
 					$self->{node_array}
 					     ->[$self->{children_index_array}
-						     ->[$i - 1]];
+						         ->[$i - 1]];
 			}
 		}
 
-		if ($min_child_index == @MAXIMUM_INT) {
+		if ($min_child_index == $MAXIMUM_INT) {
 			$self->{node_array}->[$index] = $target;
 			$target->{node_index} = $index;
 			return;
@@ -153,6 +150,8 @@ sub add {
 	my $priority = shift;	
 	my $size = scalar @{$self->{node_array}};
 	
+	return if exists $self->{$vertex};
+
 	my $node = {
 		vertex_id  => $vertex,
 		priority   => $priority,
@@ -162,7 +161,6 @@ sub add {
 	$self->{node_array}->[$size] = $node;
 	$self->{node_map}->{$vertex} = $node;
 	$self->sift_up($size);
-	return $self;
 }
 
 sub decreasePriority {
@@ -171,10 +169,11 @@ sub decreasePriority {
 	my $priority = shift;
 	my $node = $self->{node_map}->{$vertex};
 
+	return if not exists $self->{node_map}->{$vertex};
+	return if $priority >= $node->{priority};
+
 	$node->{priority} = $priority;
 	$self->sift_up($node->{index});
-	
-	return $self;
 }
 
 sub size {
@@ -187,6 +186,8 @@ sub extractMinimum {
 	my $self = shift;
 	my $node = $self->{node_array}->[0];
 	my $vertex = $node->{vertex_id};
+
+	return undef if not exists $self->{node_map}->{$vertex};
  	
 	$self->{node_array}->[0] = $self->{node_array}->[$self->size() - 1];
 	delete $self->{node_map}->{$node->{vertex_id}};	
