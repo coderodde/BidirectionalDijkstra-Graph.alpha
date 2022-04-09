@@ -2,6 +2,7 @@ package BidirectionalDijkstra::DaryHeap;
 
 use strict;
 use warnings;
+use POSIX;
 
 require Exporter;
 
@@ -45,7 +46,7 @@ sub new($$) {
 sub get_parent_index {
 	my $self = shift;
 	my $index = shift;
-	return ($index - 1) / $self->{degree};
+	return floor(($index - 1) / $self->{degree});
 }
 
 sub sift_up {
@@ -58,8 +59,9 @@ sub sift_up {
 	my $target_node = $self->{node_array}->[$index];
 
 	while (1) {
+		print "$parent_index\n";
 		my $parent_node = $self->{node_array}->[$parent_index];
-
+		
 		if ($parent_node->{priority} > $target_node->{priority}) {
 			$self->{node_array}->[$index] = $parent_node;
 			$parent_node->{node_index} = $index;
@@ -98,6 +100,10 @@ sub compute_children_indices {
 
 sub sift_down_root {
 	my $self = shift;
+
+	# Nothing to sift down:
+	return if $self->size() == 0;
+
 	my $target = $self->{node_array}->[0];
 	my $priority = $target->{priority};
 	my $min_child_priority;
